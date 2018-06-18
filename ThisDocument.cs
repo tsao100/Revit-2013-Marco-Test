@@ -40,12 +40,12 @@ namespace MyModule
 		#endregion
 		public void CreateABeam()
 		{
-        	using(Transaction trans = new Transaction(this.Document, "CreateABeam"))
-        	{
-        		trans.Start();
-        		CreateBeam(this.Document);
-        		trans.Commit();
-        	}
+			using(Transaction trans = new Transaction(this.Document, "CreateABeam"))
+			{
+				trans.Start();
+				CreateBeam(this.Document);
+				trans.Commit();
+			}
 		}
 		public void ViewLevel()
 		{
@@ -142,67 +142,67 @@ namespace MyModule
 		
 		public void CreateManyColumns()
 		{
-        	using(Transaction trans = new Transaction(this.Document, "CreateManyColumns"))
-        	{
-        		trans.Start();
-        		BatchCreateColumns(this.Document, getViewLevel());
-        		trans.Commit();
-        	}
+			using(Transaction trans = new Transaction(this.Document, "CreateManyColumns"))
+			{
+				trans.Start();
+				BatchCreateColumns(this.Document, getViewLevel());
+				trans.Commit();
+			}
 		}
 		
-private	ICollection<ElementId> BatchCreateColumns(Autodesk.Revit.DB.Document document, Level level)
-{
-    List<FamilyInstanceCreationData> fiCreationDatas = new List<FamilyInstanceCreationData>();
+		private	ICollection<ElementId> BatchCreateColumns(Autodesk.Revit.DB.Document document, Level level)
+		{
+		    List<FamilyInstanceCreationData> fiCreationDatas = new List<FamilyInstanceCreationData>();
 
-    ICollection<ElementId> elementSet = null;
+		    ICollection<ElementId> elementSet = null;
 
-    //Try to get a FamilySymbol
-    FamilySymbol familySymbol = null;
-    FilteredElementCollector collector = new FilteredElementCollector(document);
-    ICollection<Element> collection = collector.OfClass(typeof(FamilySymbol)).ToElements();
-    foreach (Element e in collection)
-    {
-        familySymbol = e as FamilySymbol;
-        if (null != familySymbol.Category)
-        {
-            if ("結構柱" == familySymbol.Category.Name)
-            {
-                break;
-            }
-        }
-    }
+		    //Try to get a FamilySymbol
+		    FamilySymbol familySymbol = null;
+		    FilteredElementCollector collector = new FilteredElementCollector(document);
+		    ICollection<Element> collection = collector.OfClass(typeof(FamilySymbol)).ToElements();
+		    foreach (Element e in collection)
+		    {
+			familySymbol = e as FamilySymbol;
+			if (null != familySymbol.Category)
+			{
+			    if ("結構柱" == familySymbol.Category.Name)
+			    {
+				break;
+			    }
+			}
+		    }
 
-    if (null != familySymbol)
-    {
-        //Create 10 FamilyInstanceCreationData items for batch creation 
-        for (int i = 1; i < 11; i++)
-        {
-            XYZ location = new XYZ(i * 10, 100, 0);
-            FamilyInstanceCreationData fiCreationData =
-                new FamilyInstanceCreationData(location, familySymbol, level,  StructuralType.Column);
+		    if (null != familySymbol)
+		    {
+			//Create 10 FamilyInstanceCreationData items for batch creation 
+			for (int i = 1; i < 11; i++)
+			{
+			    XYZ location = new XYZ(i * 10, 100, 0);
+			    FamilyInstanceCreationData fiCreationData =
+				new FamilyInstanceCreationData(location, familySymbol, level,  StructuralType.Column);
 
-            if (null != fiCreationData)
-            {
-                fiCreationDatas.Add(fiCreationData);
-            }
-        }
+			    if (null != fiCreationData)
+			    {
+				fiCreationDatas.Add(fiCreationData);
+			    }
+			}
 
-        if (fiCreationDatas.Count > 0)
-        {
-            // Create Columns
-            elementSet = document.Create.NewFamilyInstances2(fiCreationDatas);
-        }
-        else
-        {
-            throw new Exception("Batch creation failed.");
-        }
-    }
-    else
-    {
-        throw new Exception("No column types found.");
-    }
+			if (fiCreationDatas.Count > 0)
+			{
+			    // Create Columns
+			    elementSet = document.Create.NewFamilyInstances2(fiCreationDatas);
+			}
+			else
+			{
+			    throw new Exception("Batch creation failed.");
+			}
+		    }
+		    else
+		    {
+			throw new Exception("No column types found.");
+		    }
 
-    return elementSet;
-}
+		    return elementSet;
+		}
 	}
 }
