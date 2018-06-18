@@ -1,12 +1,16 @@
 /*
  * Revit Macro created by SharpDevelop
- * 用户： 董萬吉
+ * 用户： 曹政忠
  * 日期: 2018/6/17
  * 时间: 下午 08:54
  * 
  * 要改变这种模板请点击 工具|选项|代码编写|编辑标准头文件
  */
 using System;
+using System.Collections.Generic;
+using Autodesk.Revit.ApplicationServices;
+using Autodesk.Revit.Attributes;
+using Autodesk.Revit.Creation;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.UI;
@@ -43,10 +47,61 @@ namespace MyModule
         		trans.Commit();
         	}
 		}
-		private void CreateBeam(Document document)
+		public void ViewLevel()
 		{
-						// get the active view's level for beam creation
-			Level level = document.ActiveView.Level;
+			Autodesk.Revit.DB.Document doc = this.Document;			
+			View active = doc.ActiveView;
+			ElementId levelId = null;
+			
+//			Parameter level = active.get_Parameter("關聯的樓層");
+			Parameter level = active.get_Parameter(BuiltInParameter.PLAN_VIEW_LEVEL);
+			
+			
+			FilteredElementCollector lvlCollector = new FilteredElementCollector(doc);
+			ICollection<Element> lvlCollection = lvlCollector.OfClass(typeof(Level)).ToElements();
+			
+			foreach (Element l in lvlCollection)
+			{
+				Level lvl = l as Level;				
+				if(lvl.Name == level.AsString())
+				{
+					levelId = lvl.Id;
+					TaskDialog.Show("test", lvl.Name + "\n"  + lvl.Id.ToString() + level.Id.ToString());
+				}
+			}
+		
+		}
+		
+		public Level  getViewLevel()
+		{
+			Autodesk.Revit.DB.Document doc = this.Document;			
+			View active = doc.ActiveView;
+			ElementId levelId = null;
+			
+//			Parameter level = active.get_Parameter("關聯的樓層");
+			Parameter level = active.get_Parameter(BuiltInParameter.PLAN_VIEW_LEVEL);
+			
+			
+			FilteredElementCollector lvlCollector = new FilteredElementCollector(doc);
+			ICollection<Element> lvlCollection = lvlCollector.OfClass(typeof(Level)).ToElements();
+			Level lvl=null;
+			foreach (Element l in lvlCollection)
+			{
+				lvl = l as Level;				
+				if(lvl.Name == level.AsString())
+				{
+					levelId = lvl.Id;
+					break;
+					//TaskDialog.Show("test", lvl.Name + "\n"  + lvl.Id.ToString() + level.Id.ToString());
+				}
+			}
+			return lvl;
+		}
+		
+		private void CreateBeam(Autodesk.Revit.DB.Document document)
+		{
+			// get the active view's level for beam creation
+			Level level = getViewLevel();
 			
 			// load a family symbol from file
 			FamilySymbol gotSymbol = null;
@@ -84,5 +139,70 @@ namespace MyModule
 				throw new Exception("Couldn't load " + fileName);
 			}
 		}
+		
+		public void CreateManyColumns()
+		{
+        	using(Transaction trans = new Transaction(this.Document, "CreateManyColumns"))
+        	{
+        		trans.Start();
+        		BatchCreateColumns(this.Document, getViewLevel());
+        		trans.Commit();
+        	}
+		}
+		
+private	ICollection<ElementId> BatchCreateColumns(Autodesk.Revit.DB.Document document, Level level)
+{
+    List<FamilyInstanceCreationData> fiCreationDatas = new List<FamilyInstanceCreationData>();
+
+    ICollection<ElementId> elementSet = null;
+
+    //Try to get a FamilySymbol
+    FamilySymbol familySymbol = null;
+    FilteredElementCollector collector = new FilteredElementCollector(document);
+    ICollection<Element> collection = collector.OfClass(typeof(FamilySymbol)).ToElements();
+    foreach (Element e in collection)
+    {
+        familySymbol = e as FamilySymbol;
+        if (null != familySymbol.Category)
+        {
+            if ("結構柱" == familySymbol.Category.Name)
+            {
+                break;
+            }
+        }
+    }
+
+    if (null != familySymbol)
+    {
+        //Create 10 FamilyInstanceCreationData items for batch creation 
+        for (int i = 1; i < 11; i++)
+        {
+            XYZ location = new XYZ(i * 10, 100, 0);
+            FamilyInstanceCreationData fiCreationData =
+                new FamilyInstanceCreationData(location, familySymbol, level,  StructuralType.Column);
+
+            if (null != fiCreationData)
+            {
+                fiCreationDatas.Add(fiCreationData);
+            }
+        }
+
+        if (fiCreationDatas.Count > 0)
+        {
+            // Create Columns
+            elementSet = document.Create.NewFamilyInstances2(fiCreationDatas);
+        }
+        else
+        {
+            throw new Exception("Batch creation failed.");
+        }
+    }
+    else
+    {
+        throw new Exception("No column types found.");
+    }
+
+    return elementSet;
+}
 	}
 }
